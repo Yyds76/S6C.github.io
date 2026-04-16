@@ -1,229 +1,592 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<title>美食转盘抽奖</title>
-<style>
-    body {
-        font-family: "Microsoft YaHei", sans-serif;
-        background: linear-gradient(135deg, #ffecd2, #fcb69f);
-        margin: 0;
-        height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-    }
-    h1 {
-        color: #d35400;
-        margin-bottom: 20px;
-    }
-    .container {
-        position: relative;
-        width: 400px;
-        height: 400px;
-    }
-    #wheel {
-        width: 400px;
-        height: 400px;
-        border-radius: 50%;
-        border: 15px solid #fff;
-        box-shadow: 0 0 30px rgba(0,0,0,0.3);
-        transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
-        position: relative;
-    }
-    .sector {
-        position: absolute;
-        width: 50%;
-        height: 50%;
-        transform-origin: 100% 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 18px;
-        font-weight: bold;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
-        padding: 0 40px;
-        box-sizing: border-box;
-    }
-    .arrow {
-        position: absolute;
-        top: -20px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 60px;
-        z-index: 10;
-        filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4));
-    }
-    button {
-        margin-top: 40px;
-        padding: 15px 50px;
-        font-size: 24px;
-        background: #e74c3c;
-        color: white;
-        border: none;
-        border-radius: 50px;
-        cursor: pointer;
-        box-shadow: 0 8px 15px rgba(231, 76, 60, 0.4);
-        transition: all 0.3s;
-    }
-    button:hover {
-        background: #c0392b;
-        transform: translateY(-3px);
-    }
-    button:disabled {
-        background: #95a5a6;
-        cursor: not-allowed;
-        transform: none;
-    }
-    .result {
-        margin-top: 30px;
-        font-size: 28px;
-        font-weight: bold;
-        color: #d35400;
-        min-height: 50px;
-    }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>幸運調味料轉盤 | 美食抽獎樂</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* 避免手機長按選單干擾 */
+        }
+
+        body {
+            background: linear-gradient(145deg, #f9e7b3 0%, #f5bc70 100%);
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 550px;
+            width: 100%;
+            background: rgba(255, 248, 225, 0.85);
+            border-radius: 72px 72px 60px 60px;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.3), inset 0 1px 3px rgba(255,255,200,0.8);
+            backdrop-filter: blur(2px);
+            padding: 20px 20px 30px;
+            transition: all 0.2s;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.9rem;
+            margin: 0 0 5px 0;
+            color: #4e2e1e;
+            text-shadow: 3px 3px 0 #ffd966;
+            letter-spacing: 2px;
+            word-break: keep-all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        h1 span {
+            font-size: 1.7rem;
+        }
+
+        /* 轉盤區塊 + 箭頭 */
+        .wheel-area {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin: 15px 0 20px;
+        }
+        canvas {
+            background: #fff2df;
+            border-radius: 50%;
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.3), inset 0 1px 5px rgba(0,0,0,0.1);
+            max-width: 100%;
+            height: auto;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            transition: box-shadow 0.2s;
+        }
+        /* 固定不動的三角形箭頭 (置中正上方) */
+        .pointer {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 28px solid transparent;
+            border-right: 28px solid transparent;
+            border-top: 52px solid #f54b2e;
+            filter: drop-shadow(0 6px 6px rgba(0,0,0,0.3));
+            z-index: 15;
+        }
+        .pointer::after {
+            content: "▼";
+            position: absolute;
+            top: -58px;
+            left: -14px;
+            font-size: 26px;
+            color: #ffec80;
+            text-shadow: 0 2px 3px #a12b0e;
+            pointer-events: none;
+        }
+        /* 小圓心點裝飾 */
+        .center-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 18px;
+            height: 18px;
+            background: radial-gradient(circle, #f7b32b, #d47e1a);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 6px black;
+            z-index: 12;
+            pointer-events: none;
+            border: 2px solid #ffeaac;
+        }
+
+        /* 按鈕與狀態 */
+        .button-panel {
+            text-align: center;
+            margin: 15px 0 20px;
+        }
+        .spin-btn {
+            background: #ff8c42;
+            border: none;
+            font-size: 1.9rem;
+            font-weight: bold;
+            padding: 12px 32px;
+            border-radius: 60px;
+            color: white;
+            text-shadow: 0 2px 2px #a23c0c;
+            box-shadow: 0 8px 0 #b1451a;
+            cursor: pointer;
+            transition: 0.08s linear;
+            letter-spacing: 4px;
+            width: 80%;
+            max-width: 260px;
+            font-family: inherit;
+        }
+        .spin-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #b1451a;
+        }
+        .spin-btn:disabled {
+            opacity: 0.6;
+            transform: translateY(0);
+            cursor: not-allowed;
+            background: #bc7a48;
+            box-shadow: 0 8px 0 #7b3e1c;
+        }
+
+        .result-area {
+            background: #2f2219e0;
+            backdrop-filter: blur(8px);
+            border-radius: 48px;
+            padding: 12px 18px;
+            margin: 15px 0 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffefb9;
+            box-shadow: inset 0 0 0 2px #ffd68a, 0 5px 12px black;
+        }
+        .result-text {
+            background: #fffaec;
+            display: inline-block;
+            padding: 8px 22px;
+            border-radius: 50px;
+            color: #c23b0e;
+            font-size: 1.5rem;
+            min-width: 200px;
+            letter-spacing: 2px;
+        }
+
+        /* 清單區塊 - 響應式設計，適合手機右側或下方，這裡採用下方整齊列表 */
+        .record-section {
+            background: #fcead3;
+            border-radius: 48px;
+            padding: 16px 14px;
+            margin-top: 18px;
+            box-shadow: inset 0 0 0 2px #fff4e0, 0 8px 18px rgba(0,0,0,0.2);
+        }
+        .record-title {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            padding: 0 12px 6px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #723d1c;
+            border-bottom: 3px dashed #e2a34a;
+            margin-bottom: 12px;
+        }
+        .reset-record {
+            background: #da7a38;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 60px;
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.1s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .reset-record:active {
+            transform: scale(0.96);
+        }
+        .record-list {
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .record-item {
+            background: white;
+            border-radius: 36px;
+            padding: 10px 18px;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            border-left: 12px solid #f28b3a;
+            color: #3a280e;
+        }
+        .record-index {
+            background: #f5bc70;
+            border-radius: 40px;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #381f0c;
+        }
+        .record-value {
+            flex: 1;
+            letter-spacing: 1px;
+        }
+        .empty-record {
+            text-align: center;
+            color: #9b6e42;
+            padding: 20px;
+            font-style: italic;
+        }
+        .complete-tag {
+            background: #dc7f2c;
+            border-radius: 30px;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #fff0bb;
+            margin-top: 8px;
+        }
+
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 15px;
+            color: #6f451f;
+        }
+        @media (max-width: 500px) {
+            .container {
+                padding: 14px;
+            }
+            .result-text {
+                font-size: 1.2rem;
+                padding: 6px 16px;
+            }
+            .spin-btn {
+                font-size: 1.5rem;
+                padding: 10px 20px;
+            }
+            .record-item {
+                padding: 6px 14px;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<h1>🍽️ 转盘抽调味料 / 食材 🍌</h1>
-
 <div class="container">
-    <div class="arrow">▼</div>
-    <canvas id="wheel" width="400" height="400"></canvas>
+    <h1>
+        <span>🧂</span> 幸運調味轉盤 <span>🍯</span>
+    </h1>
+    <div class="wheel-area">
+        <canvas id="wheelCanvas" width="600" height="600"></canvas>
+        <div class="pointer"></div>
+        <div class="center-dot"></div>
+    </div>
+    <div class="button-panel">
+        <button class="spin-btn" id="spinButton">🎲 開始轉動 🎲</button>
+    </div>
+    <div class="result-area">
+        🎯 本次結果 🎯 <br>
+        <span class="result-text" id="resultMessage">等待轉動</span>
+    </div>
+    <div class="record-section">
+        <div class="record-title">
+            📋 抽取記錄清單 (不重複)
+            <button class="reset-record" id="resetGameBtn">🔄 重啟轉盤</button>
+        </div>
+        <div id="recordListContainer" class="record-list">
+            <div class="empty-record">✨ 尚未抽取，點擊轉盤開始 ✨</div>
+        </div>
+        <div id="completeMessage" class="complete-tag" style="display: none;">🎉 所有項目已抽完！🎉</div>
+    </div>
+    <footer>🍜 每個選項只能獲得一次！集滿七種風味</footer>
 </div>
 
-<button id="spinBtn">开始转动！</button>
-
-<div class="result" id="result"></div>
-
 <script>
-// 转盘内容（可重复出现）
-const items = [
-    "海盐胡椒",
-    "辣椒酱",
-    "香蕉",
-    "酱油",
-    "红糖",
-    "醋",
-    "红糖"
-];
+    (function() {
+        // ----------------------------- 可修改區塊：調整選項/顏色風格 -----------------------------
+        // 1. 修改下方陣列即可改變扇區內容與順序 (注意目前為7個，若增減須對應程式內部扇區數量)
+        let baseItems = ["海鹽胡椒", "辣椒醬", "香蕉", "醬油", "紅糖", "醋", "紅糖"];
+        // 注意原需求依序包含兩次紅糖，但記錄重複時是以「選項文字」判斷是否已抽過，由於兩個紅糖文字相同，
+        // 為符合「同一個選項被抽到過就不能再被抽到」，抽到一次紅糖後，兩個紅糖扇區應該一同失效(因為文字相同)。
+        // 為了忠實需求且轉盤視覺上仍有兩個「紅糖」扇區，但抽取時一旦抽中紅糖(任一個) 即標記「紅糖」為已抽，
+        // 之後不能再抽紅糖。但為了不破壞扇區數量與一致性，已抽選項邏輯過濾時會把所有文字為「紅糖」的扇區都視為同組，
+        // 當「紅糖」已抽過，轉盤上就不能再被抽到，我們的做法是重繪轉盤時，動態將「已抽的選項」對應的扇區移除（也就是不再出現在轉盤上）。
+        // 這樣第二個紅糖也會消失，完全符合「移除已抽到的選項」的語意。總扇區會逐漸減少。
+        // 此機制能完美處理重複選項狀況。
 
-const colors = [
-    "#e74c3c", "#f39c12", "#27ae60", 
-    "#2980b9", "#8e44ad", "#d35400", "#16a085"
-];
-
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
-const spinBtn = document.getElementById("spinBtn");
-const resultDiv = document.getElementById("result");
-
-let isSpinning = false;
-let currentRotation = 0;
-
-// 绘制转盘
-function drawWheel() {
-    const numSectors = items.length;
-    const anglePerSector = 2 * Math.PI / numSectors;
-    const radius = 190;
-
-    ctx.clearRect(0, 0, 400, 400);
-
-    for (let i = 0; i < numSectors; i++) {
-        const startAngle = i * anglePerSector;
-        const endAngle = (i + 1) * anglePerSector;
-
-        // 画扇形
-        ctx.beginPath();
-        ctx.moveTo(200, 200);
-        ctx.arc(200, 200, radius, startAngle, endAngle);
-        ctx.closePath();
-        ctx.fillStyle = colors[i % colors.length];
-        ctx.fill();
-
-        // 画边框
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        // 写文字
-        ctx.save();
-        ctx.translate(200, 200);
-        ctx.rotate(startAngle + anglePerSector / 2 + Math.PI / 2); // 文字方向更好看
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 20px Microsoft YaHei";
-        ctx.shadowColor = "rgba(0,0,0,0.7)";
-        ctx.shadowBlur = 5;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-
-        // 文字换行处理（如果太长）
-        const text = items[i];
-        ctx.fillText(text, 0, -80);
-        ctx.restore();
-    }
-
-    // 画中心圆
-    ctx.beginPath();
-    ctx.arc(200, 200, 40, 0, 2 * Math.PI);
-    ctx.fillStyle = "#fff";
-    ctx.fill();
-    ctx.strokeStyle = "#333";
-    ctx.lineWidth = 8;
-    ctx.stroke();
-}
-
-function spin() {
-    if (isSpinning) return;
-    isSpinning = true;
-    spinBtn.disabled = true;
-    resultDiv.textContent = "";
-
-    // 随机旋转圈数（5~8圈） + 随机角度
-    const extraRotations = 5 + Math.floor(Math.random() * 4);
-    const randomAngle = Math.random() * 360;
-    const totalRotation = extraRotations * 360 + randomAngle;
-
-    const finalRotation = currentRotation + totalRotation;
-
-    // 执行旋转动画
-    canvas.style.transition = "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)";
-    canvas.style.transform = `rotate(${finalRotation}deg)`;
-
-    currentRotation = finalRotation;
-
-    // 动画结束后计算结果
-    setTimeout(() => {
-        // 计算实际指向的角度（箭头在顶部，指向上方）
-        let normalizedAngle = (finalRotation % 360 + 360) % 360; // 0~360
-        const sectorAngle = 360 / items.length;
+        // 2. 轉盤顏色風格 (鮮豔活潑食物主題)
+        const colorPalette = [
+            "#F4A261", // 海鹽胡椒 暖橘
+            "#E76F51", // 辣椒醬 辣椒紅
+            "#F4D03F", // 香蕉 香蕉黃
+            "#A7C5A3", // 醬油 醬色改柔和綠褐
+            "#C67B4B", // 紅糖 糖棕色
+            "#D96C6C", // 醋 酒紅
+            "#E9B35F"  // 第二個紅糖 琥珀糖色
+        ];
+        // 字體顏色深色確保閱讀
+        const textColor = "#2D1F12";
         
-        // 因为箭头指顶部（0度），所以需要反向计算扇区
-        let sectorIndex = Math.floor((360 - normalizedAngle) / sectorAngle) % items.length;
+        // ----------------------------- 遊戲狀態 -----------------------------
+        let currentItems = [...baseItems];       // 目前尚未被抽走的項目 (根據抽過記錄過濾)
+        let drawnRecords = [];                    // 儲存 { index: 第幾組, name: 抽到名稱 }
+        let spinning = false;
+        let animFrameId = null;
+        let currentRotation = 0;                 // 當前轉盤累計旋轉角度(deg)
+        let spinStartTime = 0;
+        let spinDuration = 2500;                 // 轉動總時長(ms)
+        let spinStartRot = 0;
+        let spinTargetRot = 0;
+        
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinButton');
+        const resultSpan = document.getElementById('resultMessage');
+        const recordContainer = document.getElementById('recordListContainer');
+        const completeDiv = document.getElementById('completeMessage');
+        const resetBtn = document.getElementById('resetGameBtn');
 
-        const winner = items[sectorIndex];
-
-        resultDiv.innerHTML = `🎉 恭喜抽中：<br><span style="color:#e74c3c; font-size:32px;">${winner}</span>`;
-
-        isSpinning = false;
-        spinBtn.disabled = false;
-    }, 4100);
-}
-
-// 初始化
-drawWheel();
-
-// 绑定按钮
-spinBtn.addEventListener("click", spin);
-
-// 点击转盘也可以转动（可选）
-canvas.addEventListener("click", spin);
-
+        let size = 600;    // 初始大小，因canvas設寬高600，但實際css會縮放保持比例
+        function setCanvasSize() {
+            const container = canvas.parentElement;
+            const maxWidth = Math.min(container.clientWidth, 500);
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
+            canvas.width = 600;
+            canvas.height = 600;
+            size = 600;
+            drawWheel();
+        }
+        window.addEventListener('resize', () => { drawWheel(); });
+        
+        // 繪製轉盤 (根據 currentItems 動態繪製扇區，已抽選項已不存在於currentItems，直接消失)
+        function drawWheel() {
+            if (!ctx) return;
+            const count = currentItems.length;
+            if (count === 0) {
+                // 無任何扇區，顯示空白但可顯示訊息
+                ctx.clearRect(0, 0, size, size);
+                ctx.font = "bold 20px 'Segoe UI'";
+                ctx.fillStyle = "#6b3e1c";
+                ctx.shadowBlur = 0;
+                ctx.fillText("✨ 全抽完了 ✨", size/2-80, size/2);
+                return;
+            }
+            const angleStep = (Math.PI * 2) / count;
+            for (let i = 0; i < count; i++) {
+                const startAngle = i * angleStep + currentRotation * Math.PI / 180;
+                const endAngle = (i + 1) * angleStep + currentRotation * Math.PI / 180;
+                // 色彩根據原本index取樣但保留活潑感，若超出base顏色則迴圈
+                const colorIdx = (i % colorPalette.length);
+                ctx.beginPath();
+                ctx.moveTo(size/2, size/2);
+                ctx.arc(size/2, size/2, size/2, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = colorPalette[colorIdx];
+                ctx.fill();
+                ctx.save();
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = "#FFF3CF";
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+                // 繪文字
+                ctx.font = `bold ${Math.max(14, Math.floor(36 - count * 1.2))}px "Noto Sans TC", "Segoe UI"`;
+                ctx.fillStyle = textColor;
+                ctx.shadowColor = "rgba(255,255,200,0.6)";
+                ctx.shadowBlur = 3;
+                const textAngle = startAngle + angleStep / 2;
+                const textRadius = size * 0.33;
+                const x = size/2 + Math.cos(textAngle) * textRadius;
+                const y = size/2 + Math.sin(textAngle) * textRadius;
+                let text = currentItems[i];
+                // 避免文字過長折行簡化（香蕉、醬油都很短）
+                if (text.length > 6) text = text.slice(0,5)+"..";
+                ctx.fillText(text, x - ctx.measureText(text).width/2, y + 8);
+                ctx.restore();
+            }
+            // 繪製中心小圓點裝飾
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, 18, 0, 2*Math.PI);
+            ctx.fillStyle = "#FCD36A";
+            ctx.shadowBlur = 4;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, 10, 0, 2*Math.PI);
+            ctx.fillStyle = "#E08E2E";
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        
+        // 根據當前旋轉角度(currentRotation) 與 currentItems 判斷箭頭指向哪個扇區 (頂點方向為 -90°)
+        // 箭頭固定在正上方(方向角度 -90° 或是 270°)，我們定義扇區從0弧度開始，但箭頭基準為向上(角度 -PI/2)
+        function getCurrentSelectedItem() {
+            if (currentItems.length === 0) return null;
+            const count = currentItems.length;
+            const angleStepRad = (Math.PI * 2) / count;
+            // 箭頭方向是向上 (指向 -90° 或 3*PI/2)，相對於轉盤的偏移：轉盤旋轉角度 currentRotation(deg)
+            // 我們需要計算箭頭方向在轉盤局部坐標系中的角度，再找出對應扇區索引
+            // 箭頭全局固定方向 = -PI/2 (向上)
+            // 全局角度轉為轉盤自身旋轉後的局部角度公式: localAngle = (globalAngle - wheelRotationRad)
+            const globalArrowRad = -Math.PI / 2; // 向上
+            const wheelRotRad = currentRotation * Math.PI / 180;
+            let localRad = globalArrowRad - wheelRotRad;
+            // 標準化到 [0, 2PI)
+            localRad = ((localRad % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+            // 找出扇區索引
+            let idx = Math.floor(localRad / angleStepRad);
+            idx = Math.min(idx, count-1);
+            if (idx < 0) idx = 0;
+            return { index: idx, name: currentItems[idx] };
+        }
+        
+        // 動畫緩動easeOutCubic
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+        
+        function animateSpin(now) {
+            const elapsed = now - spinStartTime;
+            let t = Math.min(1, elapsed / spinDuration);
+            const easeT = easeOutCubic(t);
+            const newRotation = spinStartRot + (spinTargetRot - spinStartRot) * easeT;
+            currentRotation = newRotation % 360;
+            drawWheel();
+            if (t < 1) {
+                animFrameId = requestAnimationFrame(animateSpin);
+            } else {
+                // 轉動結束
+                currentRotation = spinTargetRot % 360;
+                drawWheel();
+                spinning = false;
+                animFrameId = null;
+                // 取得最終抽中選項
+                const selected = getCurrentSelectedItem();
+                if (selected && currentItems.length > 0) {
+                    const prizeName = selected.name;
+                    // 檢查該選項是否已被抽過(由於轉盤繪製currentItems就是未抽的，理論上一定沒抽過)
+                    // 但雙重保障：drawnRecords內有沒有相同名稱
+                    const alreadyDrawn = drawnRecords.some(rec => rec.name === prizeName);
+                    if (!alreadyDrawn) {
+                        // 新增記錄
+                        const newGroupNum = drawnRecords.length + 1;
+                        drawnRecords.push({ index: newGroupNum, name: prizeName });
+                        updateRecordUI();
+                        resultSpan.innerText = prizeName;
+                        // 從 currentItems 中移除該選項(所有相同名稱的項目全部移除, 符合不重複語意)
+                        // 注意若選項有兩個紅糖，抽到一個紅糖則移除所有紅糖扇區
+                        const newCurrentItems = currentItems.filter(item => item !== prizeName);
+                        currentItems = newCurrentItems;
+                        drawWheel();
+                        // 檢查是否全抽完
+                        if (currentItems.length === 0) {
+                            completeDiv.style.display = "block";
+                            spinBtn.disabled = true;
+                            resultSpan.innerText = "🎊 集滿所有調味料！ 🎊";
+                        } else {
+                            // 若還有選項，啟用按鈕
+                            spinBtn.disabled = false;
+                        }
+                    } else {
+                        // 理論上因為currentItems已過濾，不應該發生，但為了安全性回滾
+                        console.warn("重複抽選，邏輯錯誤");
+                        resultSpan.innerText = prizeName + "(重複失誤，重整)";
+                        spinBtn.disabled = false;
+                    }
+                } else if (currentItems.length === 0) {
+                    resultSpan.innerText = "全部抽完了！";
+                    completeDiv.style.display = "block";
+                    spinBtn.disabled = true;
+                } else {
+                    resultSpan.innerText = "未知錯誤";
+                    spinBtn.disabled = false;
+                }
+            }
+        }
+        
+        function startSpin() {
+            if (spinning) return;
+            if (currentItems.length === 0) {
+                resultSpan.innerText = "所有項目已抽完！請重啟";
+                completeDiv.style.display = "block";
+                spinBtn.disabled = true;
+                return;
+            }
+            spinning = true;
+            spinBtn.disabled = true;   // 旋轉中禁用
+            // 隨機目標旋轉角度：至少轉 N 圈 (8~16圈) + 隨機偏移
+            const extraRounds = 8 + Math.floor(Math.random() * 12); // 8~19圈
+            const randomOffset = Math.random() * 360;
+            const currentBase = currentRotation % 360;
+            // 目標總旋轉角度: 當前角度 + 360*extraRounds + 偏移量
+            const targetTotal = currentBase + 360 * extraRounds + randomOffset;
+            spinStartRot = currentRotation;
+            spinTargetRot = targetTotal;
+            spinStartTime = performance.now();
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            animFrameId = requestAnimationFrame(animateSpin);
+        }
+        
+        // 更新記錄UI
+        function updateRecordUI() {
+            recordContainer.innerHTML = "";
+            if (drawnRecords.length === 0) {
+                recordContainer.innerHTML = '<div class="empty-record">📝 暫無記錄，轉動轉盤吧 📝</div>';
+                return;
+            }
+            for (let rec of drawnRecords) {
+                const div = document.createElement('div');
+                div.className = 'record-item';
+                div.innerHTML = `
+                    <div class="record-index">第 ${rec.index} 組</div>
+                    <div class="record-value">🎲 ${rec.name}</div>
+                `;
+                recordContainer.appendChild(div);
+            }
+            // 自動捲到底
+            recordContainer.scrollTop = recordContainer.scrollHeight;
+        }
+        
+        // 重置整個遊戲 (清空記錄，重置 currentItems 為完整 baseItems)
+        function resetGame() {
+            if (spinning) {
+                if (animFrameId) cancelAnimationFrame(animFrameId);
+                spinning = false;
+            }
+            // 重置所有狀態
+            drawnRecords = [];
+            // 複製原始項目 (保留兩個紅糖)
+            currentItems = [...baseItems];
+            currentRotation = 0;   // 轉盤歸零
+            drawWheel();
+            updateRecordUI();
+            resultSpan.innerText = "等待轉動";
+            spinBtn.disabled = false;
+            completeDiv.style.display = "none";
+            // 若有動畫停止
+            if (animFrameId) {
+                cancelAnimationFrame(animFrameId);
+                animFrameId = null;
+            }
+            spinning = false;
+        }
+        
+        // 綁定事件
+        spinBtn.addEventListener('click', startSpin);
+        resetBtn.addEventListener('click', () => {
+            resetGame();
+        });
+        
+        // 初始化
+        function init() {
+            resetGame();  // 載入初始項目並繪製
+            setCanvasSize();
+        }
+        
+        init();
+    })();
 </script>
-
 </body>
 </html>
