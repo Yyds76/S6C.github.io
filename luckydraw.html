@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>美食转盘抽奖</title>
+<style>
+    body {
+        font-family: "Microsoft YaHei", sans-serif;
+        background: linear-gradient(135deg, #ffecd2, #fcb69f);
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+    h1 {
+        color: #d35400;
+        margin-bottom: 20px;
+    }
+    .container {
+        position: relative;
+        width: 400px;
+        height: 400px;
+    }
+    #wheel {
+        width: 400px;
+        height: 400px;
+        border-radius: 50%;
+        border: 15px solid #fff;
+        box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        position: relative;
+    }
+    .sector {
+        position: absolute;
+        width: 50%;
+        height: 50%;
+        transform-origin: 100% 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+        padding: 0 40px;
+        box-sizing: border-box;
+    }
+    .arrow {
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 60px;
+        z-index: 10;
+        filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4));
+    }
+    button {
+        margin-top: 40px;
+        padding: 15px 50px;
+        font-size: 24px;
+        background: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 8px 15px rgba(231, 76, 60, 0.4);
+        transition: all 0.3s;
+    }
+    button:hover {
+        background: #c0392b;
+        transform: translateY(-3px);
+    }
+    button:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    .result {
+        margin-top: 30px;
+        font-size: 28px;
+        font-weight: bold;
+        color: #d35400;
+        min-height: 50px;
+    }
+</style>
+</head>
+<body>
+
+<h1>🍽️ 转盘抽调味料 / 食材 🍌</h1>
+
+<div class="container">
+    <div class="arrow">▼</div>
+    <canvas id="wheel" width="400" height="400"></canvas>
+</div>
+
+<button id="spinBtn">开始转动！</button>
+
+<div class="result" id="result"></div>
+
+<script>
+// 转盘内容（可重复出现）
+const items = [
+    "海盐胡椒",
+    "辣椒酱",
+    "香蕉",
+    "酱油",
+    "红糖",
+    "醋",
+    "红糖"
+];
+
+const colors = [
+    "#e74c3c", "#f39c12", "#27ae60", 
+    "#2980b9", "#8e44ad", "#d35400", "#16a085"
+];
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const spinBtn = document.getElementById("spinBtn");
+const resultDiv = document.getElementById("result");
+
+let isSpinning = false;
+let currentRotation = 0;
+
+// 绘制转盘
+function drawWheel() {
+    const numSectors = items.length;
+    const anglePerSector = 2 * Math.PI / numSectors;
+    const radius = 190;
+
+    ctx.clearRect(0, 0, 400, 400);
+
+    for (let i = 0; i < numSectors; i++) {
+        const startAngle = i * anglePerSector;
+        const endAngle = (i + 1) * anglePerSector;
+
+        // 画扇形
+        ctx.beginPath();
+        ctx.moveTo(200, 200);
+        ctx.arc(200, 200, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+
+        // 画边框
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // 写文字
+        ctx.save();
+        ctx.translate(200, 200);
+        ctx.rotate(startAngle + anglePerSector / 2 + Math.PI / 2); // 文字方向更好看
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 20px Microsoft YaHei";
+        ctx.shadowColor = "rgba(0,0,0,0.7)";
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        // 文字换行处理（如果太长）
+        const text = items[i];
+        ctx.fillText(text, 0, -80);
+        ctx.restore();
+    }
+
+    // 画中心圆
+    ctx.beginPath();
+    ctx.arc(200, 200, 40, 0, 2 * Math.PI);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 8;
+    ctx.stroke();
+}
+
+function spin() {
+    if (isSpinning) return;
+    isSpinning = true;
+    spinBtn.disabled = true;
+    resultDiv.textContent = "";
+
+    // 随机旋转圈数（5~8圈） + 随机角度
+    const extraRotations = 5 + Math.floor(Math.random() * 4);
+    const randomAngle = Math.random() * 360;
+    const totalRotation = extraRotations * 360 + randomAngle;
+
+    const finalRotation = currentRotation + totalRotation;
+
+    // 执行旋转动画
+    canvas.style.transition = "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)";
+    canvas.style.transform = `rotate(${finalRotation}deg)`;
+
+    currentRotation = finalRotation;
+
+    // 动画结束后计算结果
+    setTimeout(() => {
+        // 计算实际指向的角度（箭头在顶部，指向上方）
+        let normalizedAngle = (finalRotation % 360 + 360) % 360; // 0~360
+        const sectorAngle = 360 / items.length;
+        
+        // 因为箭头指顶部（0度），所以需要反向计算扇区
+        let sectorIndex = Math.floor((360 - normalizedAngle) / sectorAngle) % items.length;
+
+        const winner = items[sectorIndex];
+
+        resultDiv.innerHTML = `🎉 恭喜抽中：<br><span style="color:#e74c3c; font-size:32px;">${winner}</span>`;
+
+        isSpinning = false;
+        spinBtn.disabled = false;
+    }, 4100);
+}
+
+// 初始化
+drawWheel();
+
+// 绑定按钮
+spinBtn.addEventListener("click", spin);
+
+// 点击转盘也可以转动（可选）
+canvas.addEventListener("click", spin);
+
+</script>
+
+</body>
+</html>
